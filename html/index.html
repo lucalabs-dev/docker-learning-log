@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>docker-learning-log</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #181818;
+            color: white;
+            height: 100vh;
+            margin: 0;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+
+        .container {
+            background: #242424;
+
+            width: 80vw;
+            max-width: 900px;
+
+            padding: 35px;
+
+            border-radius: 15px;
+
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        }
+
+
+        h1 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+
+        h2 {
+            margin-top: 25px;
+        }
+
+
+        .subtitle {
+            text-align: center;
+            color: #aaaaaa;
+            margin-bottom: 25px;
+        }
+
+
+        .textarea-box {
+            position: relative;
+        }
+
+
+        textarea {
+            width: 100%;
+
+            min-height: 180px;
+            max-height: 500px;
+
+            padding: 15px;
+
+            box-sizing: border-box;
+
+            background: #333;
+            color: white;
+
+            border: none;
+            border-radius: 10px;
+
+            font-size: 16px;
+
+            resize: none;
+        }
+
+
+        textarea:focus {
+            outline: 2px solid #4caf50;
+        }
+
+
+        .counter {
+
+            position: absolute;
+
+            bottom: 10px;
+            right: 15px;
+
+            color: #aaaaaa;
+
+            font-size: 13px;
+        }
+
+
+        button {
+            width: auto;
+            min-width: 120px;
+
+            margin-top: 15px;
+
+            padding: 12px 30px;
+
+            border: none;
+            border-radius: 10px;
+
+            background: #4caf50;
+
+            color: white;
+
+            font-size: 16px;
+
+            cursor: pointer;
+
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button:hover {
+
+            background: #45a049;
+
+        }
+
+
+        .saved {
+
+            display: none;
+
+            text-align: center;
+
+            margin-top: 15px;
+
+            color: #4caf50;
+
+            font-size: 18px;
+
+        }
+
+
+        pre {
+            background: #333;
+
+            padding: 20px;
+
+            border-radius: 10px;
+
+            color: #ddd;
+
+            height: 60vh;
+            max-height: 600px;
+
+            overflow-y: auto;
+
+            white-space: pre-wrap;
+
+            font-size: 15px;
+        }
+
+        @media (max-width: 700px) {
+
+            .container {
+                width: 90vw;
+                padding: 20px;
+            }
+        }
+
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- Startseite -->
+
+    <div id="homePage">
+
+
+        <h1>Learning Log</h1>
+
+
+        <p class="subtitle">
+            Write down what you learned today
+        </p>
+
+
+        <form id="logForm" action="/api/log" method="POST">
+
+
+            <div class="textarea-box">
+
+
+                <textarea
+                    id="text"
+                    name="text"
+                    placeholder="What did you learn?"
+                ></textarea>
+
+
+                <div class="counter">
+                    0 characters
+                </div>
+
+
+            </div>
+
+
+            <button type="submit">
+                Save
+            </button>
+
+
+        </form>
+
+
+        <div class="saved">
+            ✓ Saved
+        </div>
+
+
+        <button id="showButton" onclick="showLogs()">
+            Show Log
+        </button>
+
+
+    </div>
+
+
+
+
+    <!-- Log Seite -->
+
+
+    <div id="logPage" style="display:none;">
+
+
+        <h1>Saved Logs</h1>
+
+
+        <pre id="logs">
+Loading...
+        </pre>
+
+
+        <button onclick="showHome()">
+            Back
+        </button>
+
+
+    </div>
+
+
+
+</div>
+
+
+
+
+<script>
+
+
+const textarea = document.getElementById("text");
+const counter = document.querySelector(".counter");
+
+const form = document.getElementById("logForm");
+const saved = document.querySelector(".saved");
+
+
+const homePage = document.getElementById("homePage");
+const logPage = document.getElementById("logPage");
+const showButton = document.getElementById("showButton");
+
+
+
+// Textfeld größer machen + Zeichen zählen
+
+textarea.addEventListener("input", () => {
+
+
+    counter.textContent =
+        textarea.value.length + " characters";
+
+
+    textarea.style.height = "auto";
+
+    textarea.style.height =
+        textarea.scrollHeight + "px";
+
+
+});
+
+textarea.addEventListener("keydown", function(event) {
+
+    if (event.key === "Tab") {
+
+        event.preventDefault();
+
+        const start = this.selectionStart;
+        const end = this.selectionEnd;
+
+        this.value =
+            this.value.substring(0, start) +
+            "\t" +
+            this.value.substring(end);
+
+        this.selectionStart = this.selectionEnd = start + 1;
+    }
+
+});
+
+
+
+
+// Speichern
+
+form.addEventListener("submit", (event) => {
+
+
+    event.preventDefault();
+
+
+    saved.style.display = "block";
+
+
+    setTimeout(() => {
+
+
+        saved.style.display = "none";
+
+
+        form.submit();
+
+
+    }, 1000);
+
+
+});
+
+
+
+
+// Logs anzeigen
+
+function showLogs() {
+
+
+    homePage.style.display = "none";
+
+    showButton.style.display = "none";
+
+
+    logPage.style.display = "block";
+
+
+
+    fetch("/api/log")
+
+        .then(response => response.text())
+
+        .then(data => {
+
+
+            document.getElementById("logs").textContent = data;
+
+
+        });
+
+
+}
+
+
+
+
+// Zurück
+
+function showHome() {
+
+
+    homePage.style.display = "block";
+
+
+    showButton.style.display = "block";
+
+
+    logPage.style.display = "none";
+
+
+}
+
+
+
+</script>
+
+
+</body>
+</html>
